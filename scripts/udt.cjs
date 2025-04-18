@@ -2,20 +2,19 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 const path = require("path");
 
-const rutaJson = process.argv[2];
-const { data, credentials } = JSON.parse(fs.readFileSync(rutaJson, "utf-8"));
+const { data, credentials } = JSON.parse(fs.readFileSync(process.argv[2], "utf-8"));
 
-const rutaScreenshots = path.join(__dirname, "screenshots");
-fs.mkdirSync(rutaScreenshots, { recursive: true });
+const screenShotDir = path.join(__dirname, "screenshots");
+fs.mkdirSync(screenShotDir, { recursive: true });
 
-function guardarPaso(nombre, page) {
-  const ruta = path.join(rutaScreenshots, `${nombre}.png`);
-  return page.screenshot({ path: ruta });
+function saveStep(name, page) {
+  const dir = path.join(screenShotDir, `${name}.png`);
+  return page.screenshot({ path: dir });
 }
 
-async function cargarUDT() {
+async function loadUDTProcess() {
   const browser = await puppeteer.launch({
-    headless: true, // Keep false for debugging
+    headless: true,
     slowMo: 100,
     executablePath: '/usr/bin/chromium-browser',
     args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -33,7 +32,7 @@ async function cargarUDT() {
     
     await page.type("#username", credentials.user);
     await page.type("#password", credentials.password);
-    await guardarPaso("1-login-form", page);
+    await saveStep("1-login-form", page);
     
     await Promise.all([
       page.click('input[type="submit"][value="Ingresar"]'),
@@ -65,9 +64,8 @@ async function cargarUDT() {
     
     await udtFrame.waitForSelector('#NroEmpresa', { visible: true });
     await udtFrame.type("#NroEmpresa", data.company_number.toString(), { delay: 50 });
-    await guardarPaso("2-company-input", page);
+    await saveStep("2-company-input", page);
 
-    // Submit with frame reload handling
     udtFrame.click('button.btnGreen.mobile-Left')
   
     await udtFrame.waitForFunction(() => {
@@ -76,16 +74,16 @@ async function cargarUDT() {
       return rows.length > 1;
     }, { timeout: 30000 });
 
-    await guardarPaso("3-company-table-loaded", page);
+    await saveStep("3-company-table-loaded", page);
 
     // [5] Radio Button Handling with DOM Verification
     await udtFrame.evaluate(() => {
       const label = document.querySelector('label.radioLabel');
       if (label) {
-        label.click(); // clic en el label selecciona el radio y posiblemente ejecuta runScript
+        label.click();
       }
     });
-    await guardarPaso("4-radio-selected", page);
+    await saveStep("4-radio-selected", page);
 
     // [6] Final Submission with Popup Handling
     let popupClose = await page.$('a.fancybox-close');
@@ -93,7 +91,7 @@ async function cargarUDT() {
       await popupClose.click();
     }
 
-    await guardarPaso("5-post-submission", page);
+    await saveStep("5-post-submission", page);
 
     // [7] Person Selection with Fresh Frame Reference
     udtFrame = await getUDTFrame();
@@ -101,7 +99,7 @@ async function cargarUDT() {
     await udtFrame.click("#idSelPersona");
     
     await udtFrame.type("#NroDocumento", data.ci.toString(), { delay: 50 });
-    await guardarPaso("6-person-input", page);
+    await saveStep("6-person-input", page);
 
     udtFrame.click('#btnObtenerPersona');
 
@@ -110,16 +108,15 @@ async function cargarUDT() {
       { timeout: 30000 }
     );
 
-    await guardarPaso("7-final-screen", page);
+    await saveStep("7-final-screen", page);
 
   } catch (error) {
-    console.error(`❌ Error crítico: ${error.message}`);
-    await guardarPaso("error-screen", page);
+    console.error(`❌ Critical error: ${error.message}`);
+    await saveStep("error-screen", page);
     throw error;
   } finally {
     await browser.close();
   }
 }
 
-// Rest of utility functions remain the same
-cargarUDT();
+loadUDTProcess();
