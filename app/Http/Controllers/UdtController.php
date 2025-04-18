@@ -35,7 +35,7 @@ class UdtController extends Controller
 
     $dirPath = storage_path("app/tmp");
     if (!file_exists($dirPath)) {
-        mkdir($dirPath, 0777, true);
+      mkdir($dirPath, 0777, true);
     }
     file_put_contents($tempRoute, json_encode([
       'credentials' => $credentials,
@@ -44,6 +44,10 @@ class UdtController extends Controller
 
     $command = "/root/.nvm/versions/node/v21.7.1/bin/node " . base_path("scripts/udt.cjs") . " " . escapeshellarg($tempRoute);
     $result = Process::timeout(120)->run($command);
+
+    if (file_exists($tempRoute)) {
+      unlink($tempRoute);
+    }
 
     if ($result->successful()){
       $output = json_decode($result->output(), true);
