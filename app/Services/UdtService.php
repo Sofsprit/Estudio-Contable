@@ -59,6 +59,7 @@ class UdtService
     $filteredData['company_number'] = $this->getCompanyNameFromFileName($file->getClientOriginalName());
     $filteredData['subsid_date'] = $data['FECHA_CER_DESDE'];
     $filteredData['ocupation_code'] = $data['COD_APORTACION'];
+    $filteredData['id'] = $data['NRO_SOLICITUD'];
 
     return $filteredData;
   }

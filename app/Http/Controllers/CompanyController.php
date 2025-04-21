@@ -14,6 +14,7 @@ class CompanyController extends Controller
       'user' => 'required|string',
       'password' => 'required|string',
       'company_number' => 'required|string',
+      'ocupation' => 'required|numeric',
       'gns_company_name' => 'nullable|string',
     ]);
 

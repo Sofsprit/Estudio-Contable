@@ -28,6 +28,7 @@ class UdtController extends Controller
       'password' => $company->getPasswordAttribute(),
       'company_number' => $company->company_number,
       'gns_company_name' => $company->gns_company_name,
+      'ocupation' => $company->ocupation,
     ];
 
     $fileName = "udt_tmp_" . now()->timestamp . ".json";

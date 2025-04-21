@@ -108,7 +108,57 @@ async function loadUDTProcess() {
       { timeout: 30000 }
     );
 
+    const subsidStartDate = await udtFrame.evaluate(() => {
+      const items = Array.from(document.querySelectorAll("#divDatos ul.listLabelLg li"));
+      for (const item of items) {
+        const label = item.querySelector("label")?.textContent?.trim();
+        if (label?.includes("Inicio del subsidio:")) {
+          return item.querySelector("span")?.textContent?.trim() || null;
+        }
+      }
+      return null;
+    });
+
+    const lastBusinessDay = getLastBusinessDay(subsidStartDate);
+    await udtFrame.type('input[name="FechaUDT"]', lastBusinessDay, { delay: 50 });
+
+    await udtFrame.evaluate(() => {
+      const el = document.querySelector('input[name="FechaUDT"]');
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
     await saveStep("7-final-screen", page);
+
+    await udtFrame.evaluate(() => {
+      const el = document.querySelector('#btnIngresarUDT');
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+    await udtFrame.evaluate((ocupation) => {
+      const select = document.querySelector('#combobox');
+      if (select) {
+        const optionToSelect = Array.from(select.options).find(opt =>
+          opt.value.trim().startsWith(ocupation.toString())
+        );
+        if (optionToSelect) {
+          select.value = optionToSelect.value;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    }, credentials.ocupation);
+
+    await saveStep("8-prev-confirmation", page);
+
+    await udtFrame.click('#btnIngresarUDT');
+    await udtFrame.waitForSelector('#altaUDTRemuneraExito', { visible: true, timeout: 30000 });
+    await udtFrame.evaluate(() => {
+      const el = document.querySelector('#altaUDTRemuneraExito');
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+    await new Promise(res => setTimeout(res, 500));
+
+    await saveStep("UDT-"+data.id.toString(), page);
 
   } catch (error) {
     console.error(`❌ Critical error: ${error.message}`);
@@ -117,6 +167,30 @@ async function loadUDTProcess() {
   } finally {
     await browser.close();
   }
+}
+
+function getLastBusinessDay(dateStr, holidays = []) {
+  // Convertir de "DD/MM/YYYY" a Date
+  const [day, month, year] = dateStr.split('/').map(Number);
+  const date = new Date(year, month - 1, day); // Mes empieza en 0
+
+  // Retroceder hasta encontrar un día hábil
+  while (
+    date.getDay() === 0 || // domingo
+    date.getDay() === 6 || // sábado
+    holidays.includes(formatDate(date))
+  ) {
+    date.setDate(date.getDate() - 1);
+  }
+
+  return formatDate(date);
+}
+
+function formatDate(date) {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Mes empieza en 0
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
 }
 
 loadUDTProcess();

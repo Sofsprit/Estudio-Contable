@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Helpers\CustomCrypt;
 use MongoDB\Laravel\Eloquent\Model;
-use Illuminate\Support\Facades\Crypt;
 
 class Company extends Model
 {
@@ -15,18 +15,19 @@ class Company extends Model
     'password',
     'company_number',
     'gns_company_name',
+    'ocupation'
   ];
 
   // Accesor para desencriptar automáticamente
   public function getPasswordAttribute(): string
   {
-    return Crypt::decryptString($this->attributes['password']);
+    return CustomCrypt::decrypt($this->attributes['password']);
   }
 
   // Mutador para encriptar automáticamente al guardar
   public function setPasswordAttribute(string $value): void
   {
-    $this->attributes['password'] = Crypt::encryptString($value);
+    $this->attributes['password'] = CustomCrypt::encrypt($value);
   }
 
   protected $hidden = [
