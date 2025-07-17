@@ -7,13 +7,27 @@ RUN install-php-extensions \
     apt-get update && \
     apt-get install -y git unzip curl gnupg
 
+RUN apt-get update && apt-get install -y \
+    chromium \
+    chromium-driver \
+    fonts-liberation \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpangocairo-1.0-0 \
+    libnss3 \
+    && ln -sf /usr/bin/chromium /usr/bin/chromium-browser
 
 # Install Node.js (required for processing UDT files)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
  && apt-get install -y nodejs \
  && npm install -g npm@latest
-
-RUN npm install -g puppeteer
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer

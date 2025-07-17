@@ -16,7 +16,7 @@ async function loadUDTProcess() {
   const browser = await puppeteer.launch({
     headless: true,
     slowMo: 100,
-    executablePath: '/usr/bin/chromium-browser',
+    executablePath: '/usr/bin/chromium',
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
 
