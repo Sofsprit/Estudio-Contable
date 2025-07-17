@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Company;
 use App\Services\UdtService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
@@ -14,52 +15,63 @@ class UdtController extends Controller
   public function store(Request $request)
   {
     $request->validate([
-      'file' => 'required|file|mimes:csv,txt',
+      'file.*' => 'required|file|mimes:csv,txt',
     ]);
 
     $service = new UdtService();
+    $uploadedFiles = $request->file('file');
+    $results = [];
 
-    $fileData = $service->getFileData($request->file('file'));
+    foreach($uploadedFiles as $uploadedFile){
+      try {
+        $fileData = $service->getFileData($uploadedFile);
 
-    $company = Company::findOrFail($fileData['company_number']);
+        $company = Company::findOrFail($fileData['company_number']);
 
-    $credentials = [
-      'user' => $company->user,
-      'password' => $company->getPasswordAttribute(),
-      'company_number' => $company->company_number,
-      'gns_company_name' => $company->gns_company_name,
-      'ocupation' => $company->ocupation,
-    ];
+        $credentials = [
+          'user' => $company->user,
+          'password' => $company->getPasswordAttribute(),
+          'company_number' => $company->company_number,
+          'gns_company_name' => $company->gns_company_name,
+          'ocupation' => $company->ocupation,
+        ];
 
-    $fileName = "udt_tmp_" . now()->timestamp . ".json";
-    $tempRoute = storage_path("app/tmp/" . $fileName);
+        $fileName = "udt_tmp_" . now()->timestamp . "_" . uniqid() . ".json";
+        $fileData['credentials'] = $credentials;
 
-    $dirPath = storage_path("app/tmp");
-    if (!file_exists($dirPath)) {
-      mkdir($dirPath, 0777, true);
-    }
-    file_put_contents($tempRoute, json_encode([
-      'credentials' => $credentials,
-      'data' => $fileData
-    ]));
+        // Procesar con Node
+        //$output = $service->processWebUdt($fileName, $credentials, $fileData);
+        $output = [];
 
-    $command = "/root/.nvm/versions/node/v21.7.1/bin/node " . base_path("scripts/udt.cjs") . " " . escapeshellarg($tempRoute);
-    $result = Process::timeout(120)->run($command);
+        // Guardar en Dropbox solo si todo ok
+        Storage::disk('dropbox')->put($fileName, json_encode($fileData));
 
-    if (file_exists($tempRoute)) {
-      unlink($tempRoute);
-    }
+        $screenshotPath = base_path("scripts/screenshots/UDT-" . $fileData['company_number'] . ".png");
 
-    if ($result->successful()){
-      $output = json_decode($result->output(), true);
-      if (isset($output['error'])) {
-        return response()->json(['error' => $output['error']], 500);
+        if (file_exists($screenshotPath)) {
+          $dropboxFileName = "udt_end_screen_". $fileData['company_number'] . "_"  . now()->timestamp . "_" . uniqid() . ".png";
+          Storage::disk('dropbox')->put("web/".$dropboxFileName, file_get_contents($screenshotPath));
+        }
+
+        if (File::exists(base_path("scripts/screenshots"))) {
+          File::delete(base_path("scripts/screenshots"));
+        }
+
+        $results[] = [
+          'original_name' => $uploadedFile->getClientOriginalName(),
+          'stored_name' => $fileName,
+          'company_name' => $company->gns_company_name,
+          'output' => $output
+        ];
+      } catch (\Throwable $e) {
+        $results[] = [
+          'original_name' => $uploadedFile->getClientOriginalName(),
+          'error' => $e->getMessage(),
+        ];
       }
-    } else {
-      return response()->json(['status' => 'Error', 'message' => $result->errorOutput()], 500);
     }
-    // Process the data as needed
-    return response()->json(['message' => 'Data processed successfuly', 'result' => $result->output()], 200);
-    //return response()->json(['message' => 'Data processed successfuly', 'data' => $fileData, 'file_url' => base_path("scripts/udt.js"), 'json_url' => escapeshellarg($tempRoute)], 200);
+    
+    return response()->json(['message' => 'Data processed successfuly', 'results' => $results], 200);
+    //return response()->json(['message' => 'Data processed successfuly', 'result' => $result->output()], 200);
   }
 }

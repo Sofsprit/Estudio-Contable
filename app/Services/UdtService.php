@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Process;
 
 class UdtService
 {
@@ -60,8 +61,54 @@ class UdtService
     $filteredData['subsid_date'] = $data['FECHA_CER_DESDE'];
     $filteredData['ocupation_code'] = $data['COD_APORTACION'];
     $filteredData['id'] = $data['NRO_SOLICITUD'];
+    $filteredData['date_from'] = $data['FECHA_CER_DESDE'];
+    $filteredData['date_to'] = $data['FECHA_CER_HASTA'];
+
+    /*$nameParts = [
+      $data['APELLIDO_1'],
+      $data['NOMBRE_1'],
+    ];
+
+    $nameParts = array_filter($nameParts, function ($part) {
+      return !empty($part) && $part !== '-';
+    });
+
+    $filteredData['full_name'] = implode(' ', $nameParts);*/
+    $filteredData['surname'] = $data['APELLIDO_1'];
 
     return $filteredData;
+  }
+
+  function processWebUdt(string $fileName, array $credentials, array $fileData): array
+  {
+    $tempRoute = storage_path("app/tmp/" . $fileName);
+
+    $dirPath = storage_path("app/tmp");
+    if (!file_exists($dirPath)) {
+      mkdir($dirPath, 0777, true);
+    }
+    file_put_contents($tempRoute, json_encode([
+      'credentials' => $credentials,
+      'data' => $fileData
+    ]));
+
+    $command = "/root/.nvm/versions/node/v21.7.1/bin/node " . base_path("scripts/udt.cjs") . " " . escapeshellarg($tempRoute);
+    $result = Process::timeout(120)->run($command);
+
+    if (file_exists($tempRoute)) {
+      unlink($tempRoute);
+    }
+
+    if ($result->successful()) {
+        $output = json_decode($result->output(), true);
+        if (isset($output['error'])) {
+            throw new \RuntimeException("Node script error: " . $output['error']);
+        }
+
+        return $output ?? ['status' => 'ok'];
+    }
+
+    throw new \RuntimeException("Command failed: " . $result->errorOutput());
   }
 
 }

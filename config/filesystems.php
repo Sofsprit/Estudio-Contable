@@ -1,5 +1,9 @@
 <?php
 
+use Illuminate\Filesystem\Filesystem;
+use Spatie\Dropbox\Client;
+use Spatie\FlysystemDropbox\DropboxAdapter;
+
 return [
 
     /*
@@ -60,7 +64,11 @@ return [
             'report' => false,
         ],
 
-    ],
+        'dropbox' => [
+            'driver' => 'dropbox',
+            'root' => env('DROPBOX_ROOT', ''),
+        ],
+      ],
 
     /*
     |--------------------------------------------------------------------------
@@ -76,5 +84,18 @@ return [
     'links' => [
         public_path('storage') => storage_path('app/public'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cloud Filesystem Disk
+    |--------------------------------------------------------------------------
+    |
+    | This option defines the "cloud" disk that will be used by default when
+    | storing files in the cloud. The "s3" disk, as well as a variety of
+    | other cloud based disks are available to your application.
+    |
+    */
+
+    'cloud' => env('FILESYSTEM_CLOUD', 's3'),
 
 ];
