@@ -13,6 +13,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
  && apt-get install -y nodejs \
  && npm install -g npm@latest
 
+RUN npm install -g puppeteer
+
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
@@ -21,6 +23,9 @@ COPY . /app
 
 # Set working directory
 WORKDIR /app
+
+# Install Node.js dependencies
+RUN cd scripts && npm install --omit=dev
 
 # Install Composer dependencies
 RUN composer install --no-interaction --optimize-autoloader --no-dev
