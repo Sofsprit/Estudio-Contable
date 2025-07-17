@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'default' => env('CACHE_STORE', 'database'),
+    'default' => env('CACHE_STORE', 'mongodb_cache'),
 
     /*
     |--------------------------------------------------------------------------
@@ -44,6 +44,12 @@ return [
             'table' => env('DB_CACHE_TABLE', 'cache'),
             'lock_connection' => env('DB_CACHE_LOCK_CONNECTION'),
             'lock_table' => env('DB_CACHE_LOCK_TABLE'),
+        ],
+
+        'mongodb_cache' => [ // You can name this store whatever you like
+          'driver' => 'mongodb', // This driver name is typically provided by jenssegers/laravel-mongodb
+          'connection' => 'mongodb', // This should match the name of your MongoDB connection in config/database.php
+          'collection' => 'cache', // The collection name in MongoDB to store cache entries
         ],
 
         'file' => [
