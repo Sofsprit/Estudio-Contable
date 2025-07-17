@@ -49,7 +49,7 @@ async function loadUDTProcess() {
     const getUDTFrame = async () => {
       await page.waitForFunction(() => {
         return document.querySelector('iframe')?.contentDocument?.readyState === 'complete';
-      }, { timeout: 30000 });
+      }, { timeout: 60000 });
       
       const frames = await page.frames();
       return frames.find(f => f.url().includes("SenfAltaUDTRemunera"));
