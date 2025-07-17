@@ -5,7 +5,13 @@ RUN install-php-extensions \
     pcntl \
     mongodb && \
     apt-get update && \
-    apt-get install -y git unzip
+    apt-get install -y git unzip curl gnupg
+
+
+# Install Node.js (required for processing UDT files)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+ && apt-get install -y nodejs \
+ && npm install -g npm@latest
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
@@ -26,8 +32,9 @@ RUN sed -i'' -e 's/^APP_ENV=.*/APP_ENV=production/' -e 's/^APP_DEBUG=.*/APP_DEBU
 RUN cp .env.example .env
 
 # Set permissions
-RUN mkdir -p bootstrap/cache && \
-    chown -R www-data:www-data bootstrap/cache
+RUN mkdir -p bootstrap/cache storage/logs \
+ && chown -R www-data:www-data bootstrap/cache storage \
+ && chmod -R 775 storage
 
 RUN chown -R www-data:www-data storage
 
