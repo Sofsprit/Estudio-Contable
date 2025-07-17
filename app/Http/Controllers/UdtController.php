@@ -18,6 +18,10 @@ class UdtController extends Controller
       'file.*' => 'required|file|mimes:csv,txt',
     ]);
 
+    if (!$request->hasFile('file')) {
+      return response()->json(['message' => 'No files uploaded'], 400);
+    }
+
     $service = new UdtService();
     $uploadedFiles = $request->file('file');
     $results = [];
