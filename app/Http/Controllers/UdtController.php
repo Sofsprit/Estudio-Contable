@@ -44,8 +44,7 @@ class UdtController extends Controller
         $fileData['credentials'] = $credentials;
 
         // Procesar con Node
-        //$output = $service->processWebUdt($fileName, $credentials, $fileData);
-        $output = [];
+        $output = $service->processWebUdt($fileName, $credentials, $fileData);
 
         // Guardar en Dropbox solo si todo ok
         Storage::disk('dropbox')->put($fileName, json_encode($fileData));
@@ -76,6 +75,5 @@ class UdtController extends Controller
     }
     
     return response()->json(['message' => 'Data processed successfuly', 'results' => $results], 200);
-    //return response()->json(['message' => 'Data processed successfuly', 'result' => $result->output()], 200);
   }
 }
