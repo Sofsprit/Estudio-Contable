@@ -92,7 +92,7 @@ class UdtService
       'data' => $fileData
     ]));
 
-    $command = "/root/.nvm/versions/node/v21.7.1/bin/node " . base_path("scripts/udt.cjs") . " " . escapeshellarg($tempRoute);
+    $command = "node " . base_path("scripts/udt.cjs") . " " . escapeshellarg($tempRoute);
     $result = Process::timeout(120)->run($command);
 
     if (file_exists($tempRoute)) {
