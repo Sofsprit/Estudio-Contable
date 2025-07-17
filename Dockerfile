@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y \
     && ln -sf /usr/bin/chromium /usr/bin/chromium-browser
 
 # Install Node.js (required for processing UDT files)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
  && apt-get install -y nodejs \
  && npm install -g npm@latest
 
