@@ -34,6 +34,14 @@ return [
             'driver' => 'sync',
         ],
 
+        'mongodb' => [
+          'driver' => 'mongodb',
+          'table' => 'jobs',
+          'queue' => 'default',
+          'retry_after' => 90,
+          'after_commit' => false,
+        ],
+
         'database' => [
             'driver' => 'database',
             'connection' => env('DB_QUEUE_CONNECTION'),
