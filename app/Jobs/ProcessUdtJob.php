@@ -35,6 +35,13 @@ class ProcessUdtJob implements ShouldQueue
     {
       $service = new UdtService();
 
+      $tempDir = storage_path('app/tmp');
+
+      // Crear el directorio si no existe
+      if (!is_dir($tempDir)) {
+        mkdir($tempDir, 0777, true);
+      }
+
       $stream = Storage::disk('dropbox')->readStream($this->uploadedFilePath);
       $tempLocalPath = storage_path('app/tmp/' . basename($this->uploadedFilePath));
       file_put_contents($tempLocalPath, stream_get_contents($stream));
