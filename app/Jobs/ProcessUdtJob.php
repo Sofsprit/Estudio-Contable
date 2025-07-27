@@ -62,7 +62,7 @@ class ProcessUdtJob implements ShouldQueue
           $screenshotPath = base_path("scripts/screenshots/UDT-" . $fileData['id'] . ".png");
 
           if (file_exists($screenshotPath)) {
-            $dropboxFileName = "udt_end_screen_" . $fileData['company_number'] . "_" . now()->timestamp . "_" . uniqid() . ".png";
+            $dropboxFileName = "udt_end_screen_" . $fileData['id'] . ".png";
 
             $dateService = new DateService($fileData['request_date']);
             $day = $dateService->getDay();
@@ -88,7 +88,7 @@ class ProcessUdtJob implements ShouldQueue
 
           $errorScreenPath = base_path("scripts/screenshots/error-screen-" . ($fileData['id'] ?? uniqid()) . ".png");
           if (file_exists($errorScreenPath)) {
-            $dropboxErrorFileName = "udt_error_screen_" . ($fileData['company_number'] ?? 'unknown') . "_" . now()->timestamp . "_" . uniqid() . ".png";
+            $dropboxErrorFileName = "udt_error_screen_" . ($fileData['id'] ?? 'unknown') . ".png";
             Storage::disk('dropbox')->put("web/errors/" . $dropboxErrorFileName, file_get_contents($errorScreenPath));
           }
       } finally {
