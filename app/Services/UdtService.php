@@ -47,37 +47,31 @@ class UdtService
 
   function getFileData(UploadedFile $file): array
   {
-    $data = $this->readCsvFile($file);
+    $rows = $this->readCsvFile($file);
 
-    if (empty($data)) {
+    if (empty($rows)) {
       return [];
     }
 
-    $data = $data[0];
+    $companyNumber = $this->getCompanyNameFromFileName($file->getClientOriginalName());
 
-    $filteredData = [];
-    $filteredData['ci'] = $data['NRO_DOCUMENTO'];
-    $filteredData['company_number'] = $this->getCompanyNameFromFileName($file->getClientOriginalName());
-    $filteredData['subsid_date'] = $data['FECHA_CER_DESDE'];
-    $filteredData['ocupation_code'] = $data['COD_APORTACION'];
-    $filteredData['id'] = $data['NRO_SOLICITUD'];
-    $filteredData['date_from'] = $data['FECHA_CER_DESDE'];
-    $filteredData['date_to'] = $data['FECHA_CER_HASTA'];
-    $filteredData['request_date'] = $data['FECHA_SOLICITUD'];
+    $processed = [];
+    foreach ($rows as $row) {
+      $entry = [];
+      $entry['ci'] = $row['NRO_DOCUMENTO'];
+      $entry['company_number'] = $companyNumber;
+      $entry['subsid_date'] = $row['FECHA_CER_DESDE'];
+      $entry['ocupation_code'] = $row['COD_APORTACION'];
+      $entry['id'] = $row['NRO_SOLICITUD'];
+      $entry['date_from'] = $row['FECHA_CER_DESDE'];
+      $entry['date_to'] = $row['FECHA_CER_HASTA'];
+      $entry['request_date'] = $row['FECHA_SOLICITUD'];
+      $entry['surname'] = $row['APELLIDO_1'];
 
-    /*$nameParts = [
-      $data['APELLIDO_1'],
-      $data['NOMBRE_1'],
-    ];
+      $processed[] = $entry;
+    }
 
-    $nameParts = array_filter($nameParts, function ($part) {
-      return !empty($part) && $part !== '-';
-    });
-
-    $filteredData['full_name'] = implode(' ', $nameParts);*/
-    $filteredData['surname'] = $data['APELLIDO_1'];
-
-    return $filteredData;
+    return $processed;
   }
 
   function processWebUdt(string $fileName, array $credentials, array $fileData): array

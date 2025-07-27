@@ -27,7 +27,7 @@ async function loadUDTProcess() {
     // [1] Enhanced Login Flow
     await page.goto("https://scp.bps.gub.uy/PortalServLineaWeb", {
       waitUntil: "networkidle2",
-      timeout: 100000
+      timeout: 200000
     });
     
     await page.type("#username", credentials.user);
@@ -36,20 +36,20 @@ async function loadUDTProcess() {
     
     await Promise.all([
       page.click('input[type="submit"][value="Ingresar"]'),
-      page.waitForNavigation({ waitUntil: "networkidle2", timeout: 100000 })
+      page.waitForNavigation({ waitUntil: "networkidle2", timeout: 200000 })
     ]);
 
     // [2] Navigate with Frame Monitoring
     await page.goto("https://scp.bps.gub.uy/PortalServLineaWeb/serv_emb?escr=TODOS&srvext=9163", {
       waitUntil: "networkidle2",
-      timeout: 100000
+      timeout: 200000
     });
 
     // [3] Robust Frame Handling
     const getUDTFrame = async () => {
       await page.waitForFunction(() => {
         return document.querySelector('iframe')?.contentDocument?.readyState === 'complete';
-      }, { timeout: 100000 });
+      }, { timeout: 200000 });
       
       const frames = await page.frames();
       return frames.find(f => f.url().includes("SenfAltaUDTRemunera"));
@@ -59,7 +59,7 @@ async function loadUDTProcess() {
     if (!udtFrame) throw new Error("UDT frame not found");
 
     // [4] Company Selection with Stability
-    await udtFrame.waitForSelector("#idselEmpresa", { visible: true, timeout: 100000 });
+    await udtFrame.waitForSelector("#idselEmpresa", { visible: true, timeout: 200000 });
     await udtFrame.click("#idselEmpresa");
     
     await udtFrame.waitForSelector('#NroEmpresa', { visible: true });
@@ -72,7 +72,7 @@ async function loadUDTProcess() {
       const rows = document.querySelectorAll('#tableEmpresas tbody tr');
       console.log(rows)
       return rows.length > 1;
-    }, { timeout: 100000 });
+    }, { timeout: 200000 });
 
     await saveStep("3-company-table-loaded", page);
 
@@ -95,7 +95,7 @@ async function loadUDTProcess() {
 
     // [7] Person Selection with Fresh Frame Reference
     udtFrame = await getUDTFrame();
-    await udtFrame.waitForSelector('#idSelPersona', { visible: true, timeout: 100000 });
+    await udtFrame.waitForSelector('#idSelPersona', { visible: true, timeout: 200000 });
     await udtFrame.click("#idSelPersona");
     
     await udtFrame.type("#NroDocumento", data.ci.toString(), { delay: 50 });
@@ -105,7 +105,7 @@ async function loadUDTProcess() {
 
     await udtFrame.waitForSelector(
       '#divDatos .listLabelLg:not([disabled]):not(.disabled)',
-      { timeout: 100000 }
+      { timeout: 200000 }
     );
 
     const subsidStartDate = await udtFrame.evaluate(() => {
@@ -150,7 +150,7 @@ async function loadUDTProcess() {
     await saveStep("8-prev-confirmation", page);
 
     await udtFrame.click('#btnIngresarUDT');
-    await udtFrame.waitForSelector('#altaUDTRemuneraExito', { visible: true, timeout: 100000 });
+    await udtFrame.waitForSelector('#altaUDTRemuneraExito', { visible: true, timeout: 200000 });
     await udtFrame.evaluate(() => {
       const el = document.querySelector('#altaUDTRemuneraExito');
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
