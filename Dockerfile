@@ -5,7 +5,7 @@ RUN install-php-extensions \
     pcntl \
     mongodb && \
     apt-get update && \
-    apt-get install -y git unzip curl gnupg
+    apt-get install -y git unzip curl gnupg supervisor
 
 RUN apt-get update && apt-get install -y \
     chromium \
@@ -55,13 +55,13 @@ RUN mkdir -p bootstrap/cache storage/logs \
  && chown -R www-data:www-data bootstrap/cache storage \
  && chmod -R 775 storage
 
-RUN chown -R www-data:www-data storage
-
-RUN mkdir -p storage/logs && \
-    chmod 777 storage/logs
+RUN mkdir -p storage/logs && chmod 777 storage/logs
 
 # Generate the application key
 RUN php artisan key:generate
 
-# Set the entry point
-ENTRYPOINT ["php", "artisan", "octane:frankenphp"]
+# Copy supervisor config
+COPY deploy/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Supervisor runs both FrankenPHP + queue worker
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
