@@ -82,7 +82,8 @@ class UdtService
 
   function processWebUdt(string $fileName, array $credentials, array $fileData): array
   {
-    ini_set('max_execution_time', 300);
+    ini_set('max_execution_time', 0); // Sin límite de tiempo de ejecución
+    set_time_limit(0); // Sin límite de tiempo de ejecución
     $tempRoute = storage_path("app/tmp/" . $fileName);
 
     $dirPath = storage_path("app/tmp");
@@ -96,7 +97,7 @@ class UdtService
 
     $command = env("NODE_PATH", "node") . " " . base_path("scripts/udt.cjs") . " " . escapeshellarg($tempRoute);
 
-    $result = Process::timeout(300)->run($command);
+    $result = Process::timeout(0)->run($command);
 
     if (file_exists($tempRoute)) {
       unlink($tempRoute);
