@@ -36,7 +36,7 @@ return [
 
         'mongodb' => [
           'driver' => 'mongodb',
-          'table' => 'jobs',
+          'collection' => 'jobs',
           'queue' => 'default',
           'retry_after' => 90,
           'after_commit' => false,

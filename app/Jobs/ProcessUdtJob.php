@@ -37,6 +37,10 @@ class ProcessUdtJob implements ShouldQueue
 
         try {
           // Leer datos del archivo temporal
+          if (!file_exists($this->uploadedFilePath)) {
+            throw new \Exception("Archivo no encontrado: {$this->uploadedFilePath}");
+          }
+
           $uploadedFile = new UploadedFile($this->uploadedFilePath, $this->originalFileName, null, null, true);
           $fileData = $service->getFileData($uploadedFile);
 
@@ -72,9 +76,7 @@ class ProcessUdtJob implements ShouldQueue
             Storage::disk('dropbox')->put($fileLocation, file_get_contents($screenshotPath));
           }
 
-          if (File::exists(base_path("scripts/screenshots"))) {
-            File::delete(base_path("scripts/screenshots"));
-          }
+          File::cleanDirectory(base_path("scripts/screenshots"));
 
           Log::info("✅ Procesado correctamente: {$this->originalFileName}", [
             'company_name' => $company->gns_company_name,
