@@ -22,10 +22,10 @@ class UdtController extends Controller
 
     foreach($uploadedFiles as $uploadedFile){
       // Guardar archivo temporalmente
-      $storedPath = $uploadedFile->storeAs('tmp_udt', $uploadedFile->getClientOriginalName());
+      $tempPath = $uploadedFile->storeAs('tmp', $uploadedFile->getClientOriginalName());
 
       // Crear job para procesar en background
-      ProcessUdtJob::dispatch(storage_path("app/$storedPath"), $uploadedFile->getClientOriginalName());
+      ProcessUdtJob::dispatch($tempPath, $uploadedFile->getClientOriginalName());
 
       $jobs[] = [
         'original_name' => $uploadedFile->getClientOriginalName(),

@@ -35,67 +35,78 @@ class ProcessUdtJob implements ShouldQueue
     {
       $service = new UdtService();
 
-        try {
-          // Leer datos del archivo temporal
-          if (!file_exists($this->uploadedFilePath)) {
-            throw new \Exception("Archivo no encontrado: {$this->uploadedFilePath}");
-          }
+      $stream = Storage::disk('dropbox')->readStream($this->uploadedFilePath);
+      $tempLocalPath = storage_path('app/tmp/' . basename($this->uploadedFilePath));
+      file_put_contents($tempLocalPath, stream_get_contents($stream));
+      fclose($stream);
 
-          $uploadedFile = new UploadedFile($this->uploadedFilePath, $this->originalFileName, null, null, true);
-          $fileData = $service->getFileData($uploadedFile);
+      $fileData = [];
 
-          $company = Company::findOrFail($fileData['company_number']);
+      try {
+        // Leer datos del archivo temporal
+        if (!file_exists($tempLocalPath)) {
+          throw new \Exception("No se pudo descargar archivo desde Dropbox: {$this->uploadedFilePath}");
+        }
 
-          $credentials = [
-            'user' => $company->user,
-            'password' => $company->getPasswordAttribute(),
-            'company_number' => $company->company_number,
-            'gns_company_name' => $company->gns_company_name,
-            'ocupation' => $company->ocupation,
-          ];
+        $uploadedFile = new UploadedFile($tempLocalPath, $this->originalFileName, null, null, true);
+        $fileData = $service->getFileData($uploadedFile);
 
-          $fileName = "udt_tmp_" . now()->timestamp . "_" . uniqid() . ".json";
-          $fileData['credentials'] = $credentials;
+        $company = Company::findOrFail($fileData['company_number']);
 
-          // Procesar con Node
-          $output = $service->processWebUdt($fileName, $credentials, $fileData);
+        $credentials = [
+          'user' => $company->user,
+          'password' => $company->getPasswordAttribute(),
+          'company_number' => $company->company_number,
+          'gns_company_name' => $company->gns_company_name,
+          'ocupation' => $company->ocupation,
+        ];
 
-          // Guardar en Dropbox solo si todo ok
-          Storage::disk('dropbox')->put($fileName, json_encode($fileData));
+        $fileName = "udt_tmp_" . now()->timestamp . "_" . uniqid() . ".json";
+        $fileData['credentials'] = $credentials;
 
-          $screenshotPath = base_path("scripts/screenshots/UDT-" . $fileData['id'] . ".png");
+        // Procesar con Node
+        $output = $service->processWebUdt($fileName, $credentials, $fileData);
 
-          if (file_exists($screenshotPath)) {
-            $dropboxFileName = "udt_end_screen_" . $fileData['id'] . ".png";
+        // Guardar en Dropbox solo si todo ok
+        Storage::disk('dropbox')->put($fileName, json_encode($fileData));
 
-            $dateService = new DateService($fileData['request_date']);
-            $day = $dateService->getDay();
-            $month = $dateService->getMonth();
-            $year = $dateService->getYear();
-            $fileLocation = "web/" . $credentials['gns_company_name'] . "/" . $year . "/" . $month . "/" . $day . "/" . $dropboxFileName;
-            Storage::disk('dropbox')->put($fileLocation, file_get_contents($screenshotPath));
-          }
+        $screenshotPath = base_path("scripts/screenshots/UDT-" . $fileData['id'] . ".png");
 
-          File::cleanDirectory(base_path("scripts/screenshots"));
+        if (file_exists($screenshotPath)) {
+          $dropboxFileName = "udt_end_screen_" . $fileData['id'] . ".png";
 
-          Log::info("✅ Procesado correctamente: {$this->originalFileName}", [
-            'company_name' => $company->gns_company_name,
-            'output' => $output
-          ]);
+          $dateService = new DateService($fileData['request_date']);
+          $day = $dateService->getDay();
+          $month = $dateService->getMonth();
+          $year = $dateService->getYear();
+          $fileLocation = "web/" . $credentials['gns_company_name'] . "/" . $year . "/" . $month . "/" . $day . "/" . $dropboxFileName;
+          Storage::disk('dropbox')->put($fileLocation, file_get_contents($screenshotPath));
+        }
+
+        File::cleanDirectory(base_path("scripts/screenshots"));
+
+        Log::info("✅ Procesado correctamente: {$this->originalFileName}", [
+          'company_name' => $company->gns_company_name,
+          'output' => $output
+        ]);
       } catch (Throwable $e) {
-          Log::error("❌ Error procesando archivo: {$this->originalFileName}", [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-          ]);
+        Log::error("❌ Error procesando archivo: {$this->originalFileName}", [
+          'error' => $e->getMessage(),
+          'trace' => $e->getTraceAsString()
+        ]);
 
-          $errorScreenPath = base_path("scripts/screenshots/error-screen-" . ($fileData['id'] ?? uniqid()) . ".png");
-          if (file_exists($errorScreenPath)) {
-            $dropboxErrorFileName = "udt_error_screen_" . ($fileData['id'] ?? 'unknown') . ".png";
-            Storage::disk('dropbox')->put("web/errors/" . $dropboxErrorFileName, file_get_contents($errorScreenPath));
-          }
+        $errorScreenPath = base_path("scripts/screenshots/error-screen-" . ($fileData['id'] ?? uniqid()) . ".png");
+        if (file_exists($errorScreenPath)) {
+          $dropboxErrorFileName = "udt_error_screen_" . ($fileData['id'] ?? 'unknown') . ".png";
+          Storage::disk('dropbox')->put("web/errors/" . $dropboxErrorFileName, file_get_contents($errorScreenPath));
+        }
       } finally {
         // Limpia el archivo temporal
-        @unlink($this->uploadedFilePath);
+        @unlink($tempLocalPath);
+        // Elimina el archivo de Dropbox si existe
+        if (Storage::disk('dropbox')->exists($this->uploadedFilePath)) {
+          Storage::disk('dropbox')->delete($this->uploadedFilePath);
+        }
       }
     }
 }
