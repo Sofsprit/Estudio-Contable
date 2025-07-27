@@ -63,6 +63,7 @@ class UdtService
     $filteredData['id'] = $data['NRO_SOLICITUD'];
     $filteredData['date_from'] = $data['FECHA_CER_DESDE'];
     $filteredData['date_to'] = $data['FECHA_CER_HASTA'];
+    $filteredData['request_date'] = $data['FECHA_SOLICITUD'];
 
     /*$nameParts = [
       $data['APELLIDO_1'],
@@ -93,8 +94,8 @@ class UdtService
       'data' => $fileData
     ]));
 
-    $command = "node " . base_path("scripts/udt.cjs") . " " . escapeshellarg($tempRoute);
-    
+    $command = env("NODE_PATH", "node") . " " . base_path("scripts/udt.cjs") . " " . escapeshellarg($tempRoute);
+
     $result = Process::timeout(300)->run($command);
 
     if (file_exists($tempRoute)) {

@@ -158,11 +158,11 @@ async function loadUDTProcess() {
 
     await new Promise(res => setTimeout(res, 500));
 
-    await saveStep("UDT-"+data.company_number.toString(), page);
+    await saveStep("UDT-"+data.id.toString(), page);
 
   } catch (error) {
     console.error(`❌ Critical error: ${error.message}`);
-    await saveStep("error-screen", page);
+    await saveStep("error-screen-"+ data.id.toString(), page);
     throw error;
   } finally {
     await browser.close();

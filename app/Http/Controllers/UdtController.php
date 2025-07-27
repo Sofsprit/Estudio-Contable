@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Company;
 use App\Services\UdtService;
+use App\Services\DateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -49,11 +50,17 @@ class UdtController extends Controller
         // Guardar en Dropbox solo si todo ok
         Storage::disk('dropbox')->put($fileName, json_encode($fileData));
 
-        $screenshotPath = base_path("scripts/screenshots/UDT-" . $fileData['company_number'] . ".png");
+        $screenshotPath = base_path("scripts/screenshots/UDT-" . $fileData['id'] . ".png");
 
         if (file_exists($screenshotPath)) {
           $dropboxFileName = "udt_end_screen_". $fileData['company_number'] . "_"  . now()->timestamp . "_" . uniqid() . ".png";
-          Storage::disk('dropbox')->put("web/".$dropboxFileName, file_get_contents($screenshotPath));
+
+          $dateService = new DateService($fileData['request_date']);
+          $day = $dateService->getDay();
+          $month = $dateService->getMonth();
+          $year = $dateService->getYear();
+          $fileLocation = "web/". $credentials['gns_company_name'] . "/" . $year . "/" . $month . "/" . $day . "/" . $dropboxFileName;
+          Storage::disk('dropbox')->put($fileLocation, file_get_contents($screenshotPath));
         }
 
         if (File::exists(base_path("scripts/screenshots"))) {
@@ -71,6 +78,18 @@ class UdtController extends Controller
           'original_name' => $uploadedFile->getClientOriginalName(),
           'error' => $e->getMessage(),
         ];
+
+        Log::error("Error processing file: {$uploadedFile->getClientOriginalName()}", [
+          'company_number' => $fileData['company_number'] ?? 'unknown',
+          'error' => $e->getMessage(),
+          'trace' => $e->getTraceAsString()
+        ]);
+        // Optionally, you can store the error in Dropbox for further analysis
+        $errorScreenPath = base_path("scripts/screenshots/error-screen-" . $fileData['id'] . ".png");
+        if (file_exists($errorScreenPath)) {
+          $dropboxErrorFileName = "udt_error_screen_" . $fileData['company_number'] . "_" . now()->timestamp . "_" . uniqid() . ".png";
+          Storage::disk('dropbox')->put("web/errors/" . $dropboxErrorFileName, file_get_contents($errorScreenPath));
+        }
       }
     }
     
