@@ -11,7 +11,7 @@ fs.mkdirSync(screenShotDir, { recursive: true });
 
 function logToFile(message) {
   if (!DEBUG) return;
-  
+
   const timestamp = new Date().toISOString();
   fs.appendFileSync(logFile, `[${timestamp}] ${message}\n`);
 }
@@ -58,7 +58,7 @@ async function loadUDTProcess() {
     const getUDTFrame = async () => {
       await page.waitForFunction(() => {
         return document.querySelector('iframe')?.contentDocument?.readyState === 'complete';
-      }, { timeout: 200000 });
+      }, { timeout: 500000 });
       
       const frames = await page.frames();
       return frames.find(f => f.url().includes("SenfAltaUDTRemunera"));
