@@ -3,9 +3,18 @@ const fs = require("fs");
 const path = require("path");
 
 const { data, credentials } = JSON.parse(fs.readFileSync(process.argv[2], "utf-8"));
+const DEBUG = process.argv[3] === "1";
 
 const screenShotDir = path.join(__dirname, "screenshots");
+const logFile = path.join(__dirname, 'udt-debug.log');
 fs.mkdirSync(screenShotDir, { recursive: true });
+
+function logToFile(message) {
+  if (!DEBUG) return;
+  
+  const timestamp = new Date().toISOString();
+  fs.appendFileSync(logFile, `[${timestamp}] ${message}\n`);
+}
 
 function saveStep(name, page) {
   const dir = path.join(screenShotDir, `${name}.png`);
@@ -70,7 +79,6 @@ async function loadUDTProcess() {
   
     await udtFrame.waitForFunction(() => {
       const rows = document.querySelectorAll('#tableEmpresas tbody tr');
-      console.log(rows)
       return rows.length > 1;
     }, { timeout: 200000 });
 
@@ -102,70 +110,66 @@ async function loadUDTProcess() {
     await saveStep("6-person-input", page);
 
     udtFrame.click('#btnObtenerPersona');
-    await new Promise(res => setTimeout(res, 500));
+    await new Promise(res => setTimeout(res, 1000));
 
-    // [6.1] Verificar si hay múltiples solicitudes pendientes
+    // [7.1] Verificar si hay múltiples solicitudes pendientes
   
-    // Esperar hasta 5s que aparezca *o* la tabla de solicitudes *o* el divDatos
+    // Esperar que aparezca *o* la tabla de solicitudes *o* el divDatos
     const resultSelector = await Promise.race([
-      udtFrame.waitForSelector('#tableSolicitudesSinUDT, .tableSolicitudesSinUDTClass', { visible: true, timeout: 200000 }).then(() => 'solicitudes'),
-      udtFrame.waitForSelector('#divDatos', { visible: true, timeout: 200000 }).then(() => 'divDatos')
+      udtFrame.waitForSelector('#tableSolicitudesSinUDT', { visible: true, timeout: 200000 }).then(() => 'solicitudes'),
+      udtFrame.waitForSelector(
+      '#divDatos .listLabelLg:not([disabled]):not(.disabled)',
+      { visible: true, timeout: 200000 }
+      ).then(() => 'divDatos')
     ]);
 
     if (resultSelector === 'solicitudes') {
-      console.log('📄 Hay solicitudes pendientes, seleccionando la correcta...');
+      logToFile('📄 Hay solicitudes pendientes, seleccionando la correcta...');
 
       const solicitudId = data.id?.toString(); // ID que viene del CSV
 
       const solicitudFound = await udtFrame.evaluate((solicitudId) => {
-        const rows = Array.from(document.querySelectorAll('#tableSolicitudesSinUDT tr, .tableSolicitudesSinUDTClass tr'));
-        let found = false;
-
-        for (const row of rows) {
-          const textId = row.querySelector('td.textCenter')?.innerText?.trim();
-          if (textId === solicitudId) {
-            const radio = row.querySelector('input[type="radio"]');
-            if (radio) {
-              radio.click(); // Seleccionamos el radio correspondiente
-              found = true;
-              break;
-            }
+        const radios = Array.from(document.querySelectorAll('input[type="radio"][name="SolicIdMovil"]'));
+        for (const radio of radios) {
+          if (radio.id?.includes(solicitudId)) {
+            radio.click();
+            return true;
           }
         }
 
-        if (!found) {
-          // Si no encontramos el ID exacto, seleccionamos el primero disponible
-          const firstRadio = document.querySelector('input[type="radio"][name="SolicIdMovil"]');
-          if (firstRadio) {
-            firstRadio.click();
-            found = true;
-          }
+        // Fallback: seleccionar el primero disponible
+        const firstRadio = radios[0];
+        if (firstRadio) {
+          firstRadio.click();
+          return true;
         }
 
-        return found;
+        return false;
       }, solicitudId);
 
       if (!solicitudFound) {
         console.warn(`⚠️ No se encontró solicitud específica ${solicitudId}, se seleccionó la primera disponible`);
       } else {
-        console.log(`✅ Solicitud ${solicitudId} seleccionada correctamente`);
+        logToFile(`✅ Solicitud ${solicitudId} seleccionada correctamente`);
       }
 
       // Luego confirmamos para cargar #divDatos
-      const confirmarBtn = await udtFrame.$('button.btnGreen, #btnConfirmarSolic');
+      /*const confirmarBtn = await udtFrame.$('button.btnGreen, #btnConfirmarSolic');
       if (confirmarBtn) {
         await confirmarBtn.click();
-        console.log('✅ Confirmada la selección de solicitud');
-      }
+        logToFile('✅ Confirmada la selección de solicitud');
+      }*/
 
       await saveStep("6.1-solicitud-seleccionada", page);
 
-      // Esperar a que se cargue divDatos después de confirmar
-      await udtFrame.waitForSelector('#divDatos', { visible: true, timeout: 200000 });
     } else {
-      console.log('✅ No había múltiples solicitudes, vamos directo a #divDatos');
+      logToFile('✅ No había múltiples solicitudes, vamos directo a #divDatos');
     }
 
+    await udtFrame.waitForSelector(
+      '#divDatos .listLabelLg:not([disabled]):not(.disabled)',
+      { timeout: 200000 }
+    );
 
     const subsidStartDate = await udtFrame.evaluate(() => {
       const items = Array.from(document.querySelectorAll("#divDatos ul.listLabelLg li"));

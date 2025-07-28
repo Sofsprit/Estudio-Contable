@@ -89,7 +89,9 @@ class UdtService
       'data' => $fileData
     ]));
 
-    $command = env("NODE_PATH", "node") . " " . base_path("scripts/udt.cjs") . " " . escapeshellarg($tempRoute);
+    $debug = env('UDT_DEBUG', false) ? '1' : '0';
+
+    $command = env("NODE_PATH", "node") . " " . base_path("scripts/udt.cjs") . " " . escapeshellarg($tempRoute) . " " . $debug;
 
     $result = Process::timeout(0)->run($command);
 
