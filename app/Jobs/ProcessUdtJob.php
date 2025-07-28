@@ -135,7 +135,6 @@ class ProcessUdtJob implements ShouldQueue
         'total_registros' => count($fileDataList),
         'procesados_ok' => $processedCount,
         'con_errores' => $errorCount,
-        'credentials' => $credentials
       ]);
 
     } catch (Throwable $e) {

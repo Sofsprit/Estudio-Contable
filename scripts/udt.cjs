@@ -103,6 +103,59 @@ async function loadUDTProcess() {
 
     udtFrame.click('#btnObtenerPersona');
 
+    // [6.1] Verificar si hay múltiples solicitudes pendientes
+    const hasMultipleSolicitudes = await udtFrame.$('#tableSolicitudesSinUDT') || 
+                                  await udtFrame.$('.tableSolicitudesSinUDTClass');
+
+    if (hasMultipleSolicitudes) {
+      console.log('📄 Hay solicitudes pendientes, seleccionando la correcta...');
+
+      const solicitudId = data.id?.toString(); // ID que viene del CSV
+
+      const solicitudFound = await udtFrame.evaluate((solicitudId) => {
+        const rows = Array.from(document.querySelectorAll('#tableSolicitudesSinUDT tr, .tableSolicitudesSinUDTClass tr'));
+        let found = false;
+
+        for (const row of rows) {
+          const textId = row.querySelector('td.textCenter')?.innerText?.trim();
+          if (textId === solicitudId) {
+            const radio = row.querySelector('input[type="radio"]');
+            if (radio) {
+              radio.click(); // Seleccionamos el radio correspondiente
+              found = true;
+              break;
+            }
+          }
+        }
+
+        if (!found) {
+          // Si no encontramos el ID exacto, seleccionamos el primero disponible
+          const firstRadio = document.querySelector('input[type="radio"][name="SolicIdMovil"]');
+          if (firstRadio) {
+            firstRadio.click();
+            found = true;
+          }
+        }
+
+        return found;
+      }, solicitudId);
+
+      if (!solicitudFound) {
+        console.warn(`⚠️ No se encontró solicitud específica ${solicitudId}, se seleccionó la primera disponible`);
+      } else {
+        console.log(`✅ Solicitud ${solicitudId} seleccionada correctamente`);
+      }
+
+      // Luego enviamos para cargar #divDatos
+      const confirmarBtn = await udtFrame.$('button.btnGreen, #btnConfirmarSolic');
+      if (confirmarBtn) {
+        await confirmarBtn.click();
+        console.log('✅ Confirmada la selección de solicitud');
+      }
+
+      await saveStep("6.1-solicitud-seleccionada", page);
+    }
+
     await udtFrame.waitForSelector(
       '#divDatos .listLabelLg:not([disabled]):not(.disabled)',
       { timeout: 200000 }
