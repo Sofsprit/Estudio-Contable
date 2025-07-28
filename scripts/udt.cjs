@@ -101,13 +101,21 @@ async function loadUDTProcess() {
     await udtFrame.type("#NroDocumento", data.ci.toString(), { delay: 50 });
     await saveStep("6-person-input", page);
 
-    udtFrame.click('#btnObtenerPersona');
+    await Promise.all([
+      udtFrame.click('#btnObtenerPersona'),
+      udtFrame.waitForTimeout(500) // pequeño delay para que arranque
+    ]);
 
     // [6.1] Verificar si hay múltiples solicitudes pendientes
-    const hasMultipleSolicitudes = await udtFrame.$('#tableSolicitudesSinUDT') || 
-                                  await udtFrame.$('.tableSolicitudesSinUDTClass');
+    
 
-    if (hasMultipleSolicitudes) {
+  // Esperar hasta 5s que aparezca *o* la tabla de solicitudes *o* el divDatos
+    const resultSelector = await Promise.race([
+      udtFrame.waitForSelector('#tableSolicitudesSinUDT, .tableSolicitudesSinUDTClass', { visible: true, timeout: 5000 }).then(() => 'solicitudes'),
+      udtFrame.waitForSelector('#divDatos', { visible: true, timeout: 5000 }).then(() => 'divDatos')
+    ]);
+
+    if (resultSelector === 'solicitudes') {
       console.log('📄 Hay solicitudes pendientes, seleccionando la correcta...');
 
       const solicitudId = data.id?.toString(); // ID que viene del CSV
@@ -146,7 +154,7 @@ async function loadUDTProcess() {
         console.log(`✅ Solicitud ${solicitudId} seleccionada correctamente`);
       }
 
-      // Luego enviamos para cargar #divDatos
+      // Luego confirmamos para cargar #divDatos
       const confirmarBtn = await udtFrame.$('button.btnGreen, #btnConfirmarSolic');
       if (confirmarBtn) {
         await confirmarBtn.click();
@@ -154,12 +162,13 @@ async function loadUDTProcess() {
       }
 
       await saveStep("6.1-solicitud-seleccionada", page);
+
+      // Esperar a que se cargue divDatos después de confirmar
+      await udtFrame.waitForSelector('#divDatos', { visible: true, timeout: 200000 });
+    } else {
+      console.log('✅ No había múltiples solicitudes, vamos directo a #divDatos');
     }
 
-    await udtFrame.waitForSelector(
-      '#divDatos .listLabelLg:not([disabled]):not(.disabled)',
-      { timeout: 200000 }
-    );
 
     const subsidStartDate = await udtFrame.evaluate(() => {
       const items = Array.from(document.querySelectorAll("#divDatos ul.listLabelLg li"));
