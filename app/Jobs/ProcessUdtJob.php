@@ -39,7 +39,7 @@ class ProcessUdtJob implements ShouldQueue
 
     // Crear el directorio si no existe
     if (!is_dir($tempDir)) {
-        mkdir($tempDir, 0777, true);
+      mkdir($tempDir, 0777, true);
     }
 
     // Descargar archivo desde Dropbox
@@ -134,7 +134,8 @@ class ProcessUdtJob implements ShouldQueue
         'company_name' => $company->gns_company_name,
         'total_registros' => count($fileDataList),
         'procesados_ok' => $processedCount,
-        'con_errores' => $errorCount
+        'con_errores' => $errorCount,
+        'credentials' => $credentials
       ]);
 
     } catch (Throwable $e) {
