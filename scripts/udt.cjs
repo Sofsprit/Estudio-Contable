@@ -103,13 +103,13 @@ async function loadUDTProcess() {
 
     udtFrame.click('#btnObtenerPersona');
     await new Promise(res => setTimeout(res, 500));
-    // [6.1] Verificar si hay múltiples solicitudes pendientes
-    
 
-  // Esperar hasta 5s que aparezca *o* la tabla de solicitudes *o* el divDatos
+    // [6.1] Verificar si hay múltiples solicitudes pendientes
+  
+    // Esperar hasta 5s que aparezca *o* la tabla de solicitudes *o* el divDatos
     const resultSelector = await Promise.race([
-      udtFrame.waitForSelector('#tableSolicitudesSinUDT, .tableSolicitudesSinUDTClass', { visible: true, timeout: 5000 }).then(() => 'solicitudes'),
-      udtFrame.waitForSelector('#divDatos', { visible: true, timeout: 5000 }).then(() => 'divDatos')
+      udtFrame.waitForSelector('#tableSolicitudesSinUDT, .tableSolicitudesSinUDTClass', { visible: true, timeout: 200000 }).then(() => 'solicitudes'),
+      udtFrame.waitForSelector('#divDatos', { visible: true, timeout: 200000 }).then(() => 'divDatos')
     ]);
 
     if (resultSelector === 'solicitudes') {
