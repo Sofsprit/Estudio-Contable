@@ -101,11 +101,8 @@ async function loadUDTProcess() {
     await udtFrame.type("#NroDocumento", data.ci.toString(), { delay: 50 });
     await saveStep("6-person-input", page);
 
-    await Promise.all([
-      udtFrame.click('#btnObtenerPersona'),
-      udtFrame.waitForTimeout(500) // pequeño delay para que arranque
-    ]);
-
+    udtFrame.click('#btnObtenerPersona');
+    await new Promise(res => setTimeout(res, 500));
     // [6.1] Verificar si hay múltiples solicitudes pendientes
     
 
