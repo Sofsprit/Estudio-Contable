@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\ProcessUdtJob;
+use App\Services\DropboxService;
 use Illuminate\Http\Request;
 
 class UdtController extends Controller
@@ -15,6 +16,12 @@ class UdtController extends Controller
 
     if (!$request->hasFile('file')) {
       return response()->json(['message' => 'No files uploaded'], 400);
+    }
+
+    $token = DropboxService::getAccessToken();
+
+    if (!$token) {
+      return response()->json(['message' => 'Failed to retrieve Dropbox access token'], 500);
     }
 
     $uploadedFiles = $request->file('file');
