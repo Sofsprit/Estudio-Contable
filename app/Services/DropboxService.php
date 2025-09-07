@@ -2,47 +2,62 @@
 
 namespace App\Services;
 
+
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use League\Flysystem\Filesystem;
+use Spatie\Dropbox\Client;
+use Spatie\FlysystemDropbox\DropboxAdapter;
 
 class DropboxService
 {
-    public static function getAccessToken(): string
-    {
-      $token = Cache::get('dropbox_access_token');
+  public static function getDisk(): FilesystemAdapter
+  {
+    $accessToken = self::getAccessToken();
+    $client = new Client($accessToken);
+    $adapter = new DropboxAdapter($client);
+    $filesystem = new Filesystem($adapter);
 
-      if ($token && self::isTokenValid($token)) {
-        return $token;
-      }
+    return new FilesystemAdapter($filesystem, $adapter);
+  }
 
-      return self::refreshToken();
+  public static function getAccessToken(): string
+  {
+    $token = Cache::get('dropbox_access_token');
+
+    if ($token && self::isTokenValid($token)) {
+      return $token;
     }
 
-    protected static function refreshToken(): string
-    {
-      $response = Http::asForm()->post('https://api.dropboxapi.com/oauth2/token', [
-        'grant_type' => 'refresh_token',
-        'refresh_token' => env('DROPBOX_REFRESH_TOKEN'),
-        'client_id' => env('DROPBOX_CLIENT_ID'),
-        'client_secret' => env('DROPBOX_CLIENT_SECRET'),
-      ]);
+    return self::refreshToken();
+  }
 
-      if ($response->failed()) {
-        throw new \Exception('Failed to refresh Dropbox access token');
-      }
+  protected static function refreshToken(): string
+  {
+    $response = Http::asForm()->post('https://api.dropboxapi.com/oauth2/token', [
+      'grant_type' => 'refresh_token',
+      'refresh_token' => env('DROPBOX_REFRESH_TOKEN'),
+      'client_id' => env('DROPBOX_CLIENT_ID'),
+      'client_secret' => env('DROPBOX_CLIENT_SECRET'),
+    ]);
 
-      $newToken = $response->json('access_token');
-
-      Cache::put('dropbox_access_token', $newToken, now()->addSeconds($response->json('expires_in', 14400)));
-
-      return $newToken;
+    if ($response->failed()) {
+      throw new \Exception('Failed to refresh Dropbox access token');
     }
 
-    protected static function isTokenValid(string $token): bool
-    {
-      $check = Http::withToken($token)
-        ->post('https://api.dropboxapi.com/2/users/get_current_account');
+    $newToken = $response->json('access_token');
 
-      return $check->ok();
-    }
+    Cache::put('dropbox_access_token', $newToken, now()->addSeconds($response->json('expires_in', 14400)));
+
+    return $newToken;
+  }
+
+  protected static function isTokenValid(string $token): bool
+  {
+    $check = Http::withToken($token)
+      ->post('https://api.dropboxapi.com/2/users/get_current_account');
+
+    return $check->ok();
+  }
 }

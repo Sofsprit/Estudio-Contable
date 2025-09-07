@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Company;
 use App\Services\DateService;
+use App\Services\DropboxService;
 use App\Services\UdtService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -42,8 +43,10 @@ class ProcessUdtJob implements ShouldQueue
       mkdir($tempDir, 0777, true);
     }
 
+    $dropbox = DropboxService::getDisk();
+
     // Descargar archivo desde Dropbox
-    $stream = Storage::disk('dropbox')->readStream($this->uploadedFilePath);
+    $stream = $dropbox->readStream($this->uploadedFilePath);
     $tempLocalPath = storage_path('app/tmp/' . basename($this->uploadedFilePath));
     file_put_contents($tempLocalPath, stream_get_contents($stream));
     fclose($stream);
@@ -83,7 +86,7 @@ class ProcessUdtJob implements ShouldQueue
           $output = $service->processWebUdt($fileName, $credentials, $fileData);
 
           // Guardar JSON procesado individualmente en Dropbox
-          Storage::disk('dropbox')->put($fileName, json_encode($fileData));
+          $dropbox->put($fileName, json_encode($fileData));
 
           // Verificar si hay screenshot y subirlo
           $screenshotPath = base_path("scripts/screenshots/UDT-" . $fileData['id'] . ".png");
@@ -96,7 +99,7 @@ class ProcessUdtJob implements ShouldQueue
               $year = $dateService->getYear();
 
               $fileLocation = "web/" . $credentials['gns_company_name'] . "/" . $year . "/" . $month . "/" . $day . "/" . $dropboxFileName;
-              Storage::disk('dropbox')->put($fileLocation, file_get_contents($screenshotPath));
+              $dropbox->put($fileLocation, file_get_contents($screenshotPath));
           }
 
           Log::info("✅ Procesado correctamente persona {$fileData['id']} del archivo {$this->originalFileName}", [
@@ -147,8 +150,8 @@ class ProcessUdtJob implements ShouldQueue
       @unlink($tempLocalPath);
 
       // Elimina el archivo original de Dropbox
-      if (Storage::disk('dropbox')->exists($this->uploadedFilePath)) {
-        Storage::disk('dropbox')->delete($this->uploadedFilePath);
+      if ($dropbox->exists($this->uploadedFilePath)) {
+        $dropbox->delete($this->uploadedFilePath);
       }
     }
   }

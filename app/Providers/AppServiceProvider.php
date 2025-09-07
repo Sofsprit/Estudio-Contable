@@ -26,13 +26,18 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
       Storage::extend('dropbox', function ($app, $config) {
-        $accessToken = DropboxService::getAccessToken();
+        return new class($config) extends \Illuminate\Filesystem\FilesystemAdapter {
+            public function __construct($config)
+            {
+                $accessToken = \App\Services\DropboxService::getAccessToken();
 
-        $client = new \Spatie\Dropbox\Client($accessToken);
-        $adapter = new \Spatie\FlysystemDropbox\DropboxAdapter($client, $config['root'] ?? '');
+                $client = new \Spatie\Dropbox\Client($accessToken);
+                $adapter = new \Spatie\FlysystemDropbox\DropboxAdapter($client, $config['root'] ?? '');
+                $filesystem = new \League\Flysystem\Filesystem($adapter);
 
-        $filesystem = new \League\Flysystem\Filesystem($adapter);
-        return new \Illuminate\Filesystem\FilesystemAdapter($filesystem, $adapter, $config);
+                parent::__construct($filesystem, $adapter, $config);
+            }
+        };
       });
 
       Storage::disk('dropbox');
