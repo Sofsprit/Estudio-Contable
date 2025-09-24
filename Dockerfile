@@ -42,7 +42,7 @@ WORKDIR /app
 RUN cd scripts && npm install --omit=dev
 
 # Install Composer dependencies
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+RUN composer install --no-interaction --optimize-autoloader --no-dev --no-scripts
 
 # Change APP_ENV and APP_DEBUG to be production-ready
 RUN sed -i'' -e 's/^APP_ENV=.*/APP_ENV=production/' -e 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env.example
@@ -56,9 +56,6 @@ RUN mkdir -p bootstrap/cache storage/logs \
  && chmod -R 775 storage
 
 RUN mkdir -p storage/logs && chmod 777 storage/logs
-
-# Generate the application key
-RUN php artisan key:generate
 
 # Copy supervisor config
 COPY deploy/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
