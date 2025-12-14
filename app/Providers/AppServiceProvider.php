@@ -40,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
         };
       });
 
-      Storage::disk('dropbox');
+      // Dropbox disk is initialized lazily when DropboxService::getDisk() is called
+      // Removed eager initialization to avoid MongoDB connection during boot
     }
 }
